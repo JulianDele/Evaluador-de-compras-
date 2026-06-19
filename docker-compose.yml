@@ -1,0 +1,140 @@
+version: '3.9'
+
+# ============================================================================
+# Docker Compose — Consumo Estratégico
+# ============================================================================
+# Instrucciones:
+#   1. Copia .env.example a .env
+#   2. Edita .env con tus valores
+#   3. Ejecuta: docker-compose up --build
+#
+# Servicios:
+#   - db (PostgreSQL 15): puerto 5432
+#   - backend (FastAPI): puerto 8000
+#   - frontend (React): puerto 3000
+# ============================================================================
+
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # BASE DE DATOS — PostgreSQL 15
+  # ──────────────────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: ce_postgres
+    restart: unless-stopped
+    
+    # Variables de entorno
+    environment:
+      POSTGRES_DB:       consumo_estrategico
+      POSTGRES_USER:     ce_user
+      # ⚠️  Lee desde .env (más seguro que hardcoded)
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cambiar_en_produccion}
+    
+    # Volúmenes: BD persistente + esquema inicial
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    
+    # Puerto
+    ports:
+      - "5432:5432"
+    
+    # Verificar que la BD está lista antes de que dependientes intenten conectar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ce_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # BACKEND — FastAPI en Python
+  # ──────────────────────────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: ce_backend
+    restart: unless-stopped
+    
+    # Esperar a que BD esté lista
+    depends_on:
+      db:
+        condition: service_healthy
+    
+    # Variables de entorno (desde .env)
+    environment:
+      # Conexión a BD (usa hostname 'db' porque está en Docker)
+      DATABASE_URL:    postgresql://ce_user:${DB_PASSWORD:-cambiar_en_produccion}@db:5432/consumo_estrategico
+      
+      # Seguridad JWT
+      JWT_SECRET_KEY:  ${JWT_SECRET_KEY:-CAMBIAR_ESTO_EN_PRODUCCION_128_CARACTERES}
+      JWT_ALGORITHM:   HS256
+      JWT_EXPIRE_HOURS: 24
+      
+      # Archivos subidos
+      MAX_FILE_SIZE_MB: 10
+      UPLOAD_DIR:      /var/app/uploads
+      
+      # Entorno (desarrollo/producción)
+      ENVIRONMENT:     ${ENVIRONMENT:-development}
+      DEBUG:           ${DEBUG:-false}
+      
+      # CORS - permitir solicitudes desde frontend
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://frontend}
+    
+    # Volúmenes persistentes para uploads
+    volumes:
+      - uploads_data:/var/app/uploads
+    
+    # Puerto solo expuesto en desarrollo (nginx hace proxy en producción)
+    # Comentar esta sección en producción para no exponer el backend directamente
+    ports:
+      - "8000:8000"
+    
+    # Verificar que el servidor está listo
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # FRONTEND — React + Nginx
+  # ──────────────────────────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: ce_frontend
+    restart: unless-stopped
+    
+    # Esperar a que backend esté listo
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    # Puerto
+    ports:
+      - "3000:80"
+    
+    # Verificar que el servidor web está listo
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+
+# ============================================================================
+# VOLÚMENES PERSISTENTES
+# ============================================================================
+# - postgres_data: Base de datos (se mantiene aunque apagues Docker)
+# - uploads_data: Archivos cargados por usuarios (se mantiene)
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local

@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+*.egg
+dist/
+.coverage
+htmlcov/
+.tox/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.env.*.local
+
+# Documentación (opcional en producción)
+docs/
+README.md
+SETUP.md
+
+# Tests
+tests/
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+
+# Misc
+.env.example
+.python-version
+.nvmrc
+start-dev.sh
+start-dev.bat
+check-requirements.py
