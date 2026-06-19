@@ -1,0 +1,9 @@
+backend/
+scripts/
+docs/
+data-samples/
+*.md
+*.py
+*.sql
+docker-compose.yml
+index.py
