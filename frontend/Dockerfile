@@ -1,0 +1,15 @@
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --prefer-offline
+COPY . .
+# URL del backend: usa /api/v1 para que nginx haga el proxy
+# Sobreescribir en builds personalizados: --build-arg VITE_API_URL=https://tu-backend.com/api/v1
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=$VITE_API_URL
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
