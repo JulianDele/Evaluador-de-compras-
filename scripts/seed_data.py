@@ -27,10 +27,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 engine = create_engine(DATABASE_URL)
 
 USERS = [
-    {"name": "Admin Principal",  "email": "admin@consumo.local", "role": "admin",    "password": "Consumo2024!"},
-    {"name": "Ana García",       "email": "ana@ejemplo.com",     "role": "analista", "password": "Consumo2024!"},
-    {"name": "Carlos López",     "email": "carlos@ejemplo.com",  "role": "analista", "password": "Consumo2024!"},
-    {"name": "María Torres",     "email": "maria@ejemplo.com",   "role": "analista", "password": "Consumo2024!"},
+    {"name": "Admin Principal",  "email": "admin@consumo.local", "password": "Consumo2024!"},
+    {"name": "Ana García",       "email": "ana@ejemplo.com",     "password": "Consumo2024!"},
+    {"name": "Carlos López",     "email": "carlos@ejemplo.com",  "password": "Consumo2024!"},
+    {"name": "María Torres",     "email": "maria@ejemplo.com",   "password": "Consumo2024!"},
 ]
 
 PRODUCTS = [
@@ -77,11 +77,11 @@ def seed():
             password_hash = pwd_context.hash(user["password"])
             result = conn.execute(
                 text("""
-                    INSERT INTO users (name, email, password_hash, role)
-                    VALUES (:name, :email, :hash, :role)
+                    INSERT INTO users (name, email, password_hash)
+                    VALUES (:name, :email, :hash)
                     RETURNING id
                 """),
-                {"name": user["name"], "email": user["email"], "hash": password_hash, "role": user["role"]}
+                {"name": user["name"], "email": user["email"], "hash": password_hash}
             )
             user_ids[i] = result.scalar_one()
         conn.commit()
@@ -123,7 +123,7 @@ def seed():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("Credenciales de acceso:")
     for user in USERS:
-        print(f"  {user['role']:8} | {user['email']:25} | {user['password']}")
+        print(f"  {user['email']:25} | {user['password']}")
 
 
 if __name__ == "__main__":

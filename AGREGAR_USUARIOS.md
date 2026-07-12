@@ -10,12 +10,12 @@ Después de inicializar la aplicación, necesitas agregar usuarios a la base de 
 
 Después de ejecutar `docker-compose up --build`, los usuarios por defecto se crean automáticamente:
 
-| Email | Contraseña | Rol |
-|-------|------------|-----|
-| admin@consumo.local | Consumo2024! | Admin |
-| ana@ejemplo.com | Consumo2024! | Analista |
-| carlos@ejemplo.com | Consumo2024! | Analista |
-| maria@ejemplo.com | Consumo2024! | Analista |
+| Email | Contraseña |
+|-------|------------|
+| admin@consumo.local | Consumo2024! |
+| ana@ejemplo.com | Consumo2024! |
+| carlos@ejemplo.com | Consumo2024! |
+| maria@ejemplo.com | Consumo2024! |
 
 **Simplemente usa cualquiera de estas credenciales para loguear.**
 
@@ -31,12 +31,7 @@ Si eres **Admin**:
 4. Completa el formulario:
    - Email
    - Nombre completo
-   - Rol (Analista o Admin)
-   - Contraseña temporal
-
 5. Haz clic en **"Guardar"**
-
-El nuevo usuario recibirá la contraseña temporal y podrá cambiarla en su primer login.
 
 ---
 
@@ -54,11 +49,10 @@ psql -U ce_user -d consumo_estrategico -h localhost
 -- Generar hash de contraseña: cambiar_esto_por_un_hash_bcrypt
 -- O usa: python -c "from passlib.context import CryptContext; pwd_context = CryptContext(schemes=['bcrypt']); print(pwd_context.hash('MiContraseña123'))"
 
-INSERT INTO users (name, email, password_hash, role) VALUES (
+INSERT INTO users (name, email, password_hash) VALUES (
   'Juan Pérez',
   'juan@ejemplo.com',
-  '$2b$12$...',  -- Hash bcrypt aquí
-  'analista'
+  '$2b$12$...'  -- Hash bcrypt aquí
 );
 
 -- Verificar
@@ -101,7 +95,7 @@ O consulta la documentación interactiva:
 psql -U ce_user -d consumo_estrategico
 
 # Ver todos los usuarios
-SELECT id, name, email, role, is_active FROM users;
+SELECT id, name, email, is_active FROM users;
 
 # Ver usuarios activos
 SELECT * FROM users WHERE is_active = TRUE;
@@ -163,7 +157,6 @@ UPDATE users SET is_active = FALSE WHERE id = 1;
 ## 💡 Consejos
 
 - **Usa contraseñas fuertes**: Mínimo 8 caracteres, con números y símbolos
-- **Roles diferentes**: Admin para configuración, Analista para análisis
 - **Auditoría**: Verifica quién accede en los logs: `docker-compose logs backend`
 - **Datos sensibles**: No subas usuarios de producción a Git
 
@@ -215,11 +208,11 @@ El archivo `scripts/insert_users.sql` contiene:
 TRUNCATE TABLE audit_logs, imports, purchases, products, users RESTART IDENTITY CASCADE;
 
 -- Insertar usuarios
-INSERT INTO users (name, email, password_hash, role, is_active) VALUES
-  ('Admin Principal', 'admin@consumo.local', '[hash bcrypt]', 'admin', true),
-  ('Ana García', 'ana@ejemplo.com', '[hash bcrypt]', 'analista', true),
-  ('Carlos López', 'carlos@ejemplo.com', '[hash bcrypt]', 'analista', true),
-  ('María Torres', 'maria@ejemplo.com', '[hash bcrypt]', 'analista', true);
+INSERT INTO users (name, email, password_hash, is_active) VALUES
+  ('Admin Principal', 'admin@consumo.local', '[hash bcrypt]', true),
+  ('Ana García', 'ana@ejemplo.com', '[hash bcrypt]', true),
+  ('Carlos López', 'carlos@ejemplo.com', '[hash bcrypt]', true),
+  ('María Torres', 'maria@ejemplo.com', '[hash bcrypt]', true);
 
 -- Insertar productos de ejemplo
 INSERT INTO products (name) VALUES
@@ -236,7 +229,7 @@ Una vez ejecutado el script, verifica que los datos se insertaron:
 
 ```sql
 -- Ver usuarios
-SELECT id, name, email, role FROM users;
+SELECT id, name, email FROM users;
 
 -- Ver productos
 SELECT COUNT(*) as total_productos FROM products;

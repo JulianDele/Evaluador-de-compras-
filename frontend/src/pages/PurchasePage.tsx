@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import api from '../api'
 import type { UserDetail, Purchase, PurchaseCreate } from '../types'
 import Modal from '../components/Modal'
+import AnalysisDashboard from '../components/AnalysisDashboard'
 
 const schema = z.object({
   product:        z.string().min(1, 'Campo requerido'),
@@ -23,6 +24,7 @@ export default function PurchasePage() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
 
+  const [activeTab, setActiveTab] = useState<'purchases' | 'analysis'>('purchases')
   const [user, setUser]           = useState<UserDetail | null>(null)
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading]     = useState(true)
@@ -122,10 +124,53 @@ export default function PurchasePage() {
             ◄ Volver
           </button>
           <h1 style={{ fontSize: '1.375rem' }}>
-            Registrar compra — <span style={{ color: 'var(--color-primary)' }}>{user?.name}</span>
+            <span style={{ color: 'var(--color-primary)' }}>{user?.name}</span>
           </h1>
         </div>
 
+        {/* ── Pestañas ── */}
+        <div className="card" style={{ marginBottom: '1.5rem', padding: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+            <button
+              onClick={() => setActiveTab('purchases')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: activeTab === 'purchases' ? 'var(--color-primary)' : 'transparent',
+                color: activeTab === 'purchases' ? 'white' : 'var(--color-text)',
+                border: 'none',
+                borderRadius: '4px 4px 0 0',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: activeTab === 'purchases' ? '600' : '500',
+                transition: 'all 0.2s ease'
+              }}
+              aria-label="Pestaña de registro de compras"
+            >
+              📋 Registrar Compra
+            </button>
+            <button
+              onClick={() => setActiveTab('analysis')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: activeTab === 'analysis' ? 'var(--color-primary)' : 'transparent',
+                color: activeTab === 'analysis' ? 'white' : 'var(--color-text)',
+                border: 'none',
+                borderRadius: '4px 4px 0 0',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: activeTab === 'analysis' ? '600' : '500',
+                transition: 'all 0.2s ease'
+              }}
+              aria-label="Pestaña de análisis de compras"
+            >
+              📊 Análisis de Compras
+            </button>
+          </div>
+        </div>
+
+        {/* ── Pestaña: Registrar Compra ── */}
+        {activeTab === 'purchases' && (
+          <>
         {/* ── Formulario de compra ── */}
         <div className="card mb-4" style={{ marginBottom: '1.5rem' }}>
           <div className="card-title">Datos de la compra</div>
@@ -258,6 +303,13 @@ export default function PurchasePage() {
             </div>
           )}
         </div>
+          </>
+        )}
+
+        {/* ── Pestaña: Análisis de Compras ── */}
+        {activeTab === 'analysis' && userId && user && (
+          <AnalysisDashboard userId={Number(userId)} userName={user.name} />
+        )}
       </div>
 
       {/* ── Modal de confirmación ── */}

@@ -12,12 +12,12 @@ TRUNCATE TABLE audit_logs, imports, purchases, products, users RESTART IDENTITY 
 
 -- Insertar usuarios de ejemplo
 -- Las contraseñas son: "Consumo2024!" hasheadas con bcrypt
-INSERT INTO users (name, email, password_hash, role, is_active)
+INSERT INTO users (name, email, password_hash, is_active)
 VALUES
-  ('Admin Principal', 'admin@consumo.local', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', 'admin', true),
-  ('Ana García', 'ana@ejemplo.com', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', 'analista', true),
-  ('Carlos López', 'carlos@ejemplo.com', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', 'analista', true),
-  ('María Torres', 'maria@ejemplo.com', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', 'analista', true);
+  ('Admin Principal', 'admin@consumo.local', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', true),
+  ('Ana García', 'ana@ejemplo.com', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', true),
+  ('Carlos López', 'carlos@ejemplo.com', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', true),
+  ('María Torres', 'maria@ejemplo.com', '$2b$12$D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q/D7p7Q', true);
 
 -- Insertar productos de ejemplo
 INSERT INTO products (name)

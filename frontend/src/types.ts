@@ -66,3 +66,27 @@ export interface TokenData {
   expires_in: number
   user: User
 }
+
+export interface TopProduct {
+  product: string
+  count: number
+  total_spent: number
+}
+
+export interface AnalysisSummary {
+  user_id: number
+  user_name: string
+  period: {
+    from: string
+    to: string
+  }
+  summary: {
+    total_purchases: number
+    total_spent: number
+    average_per_purchase: number
+    favorite_product: string | null
+    most_used_payment_method: string | null
+  }
+  top_products: TopProduct[]
+  payment_methods: Record<string, number>
+}
