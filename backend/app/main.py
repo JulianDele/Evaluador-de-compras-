@@ -23,7 +23,8 @@ app = FastAPI(
 )
 
 origins = [
-    "http://localhost:3000",  # Desarrollo local
+    "http://localhost:3000",  # Desarrollo local (npm)
+    "http://localhost:5173",  # Desarrollo local (Vite)
     "https://evaluador-de-compras-b9fw79jbk-juliandeles-projects.vercel.app", 
 ]
 
