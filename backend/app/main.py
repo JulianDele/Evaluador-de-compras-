@@ -5,6 +5,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
 from app.config import settings
 from app.auth.router import router as auth_router
 from app.users.router import router as users_router
@@ -21,11 +22,16 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
 )
 
+origins = [
+    "http://localhost:3000",  # Desarrollo local
+    "https://evaluador-de-compras-b9fw79jbk-juliandeles-projects.vercel.app", 
+]
+
 # ─── Middlewares ──────────────────────────────────────────────────────────────
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins_list,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],

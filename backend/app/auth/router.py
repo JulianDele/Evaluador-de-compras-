@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, AuditLog
-from app.schemas import LoginRequest, TokenResponse, RegisterRequest, UserBasic
+from app.schemas import LoginRequest, TokenResponse, UserBasic
 from app.auth.security import hash_password, verify_password, create_access_token, get_current_user
 from app.config import settings
 
@@ -47,32 +47,3 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         expires_in=settings.jwt_expire_hours * 3600,
         user=UserBasic.model_validate(user),
     )
-
-
-@router.post(
-    "/register",
-    response_model=UserBasic,
-    status_code=status.HTTP_201_CREATED,
-    summary="Registrar usuario",
-)
-def register(
-    body: RegisterRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    existing = db.query(User).filter(User.email == body.email.lower()).first()
-    if existing:
-        raise HTTPException(400, detail="Ya existe un usuario con ese correo electrónico")
-
-    user = User(
-        name=body.name,
-        email=body.email.lower(),
-        password_hash=hash_password(body.password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    _log(db, current_user.id, "CREATE_USER", {"created_email": user.email}, request)
-    return UserBasic.model_validate(user)
