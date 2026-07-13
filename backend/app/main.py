@@ -2,6 +2,7 @@
 Punto de entrada principal de la aplicación FastAPI — Consumo Estratégico.
 """
 import os
+import re
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,17 +23,33 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
 )
 
-origins = [
-    "http://localhost:3000",  # Desarrollo local (npm)
-    "http://localhost:5173",  # Desarrollo local (Vite)
-    "https://evaluador-de-compras-b9fw79jbk-juliandeles-projects.vercel.app", 
-]
+# ─── Procesar CORS con soporte para wildcards ─────────────────────────────────
+
+def process_cors_origins(origins_str: str) -> list:
+    """Convierte lista de origins con wildcards a lista para CORSMiddleware."""
+    origins_list = []
+    for origin in origins_str.split(","):
+        origin = origin.strip()
+        if not origin:
+            continue
+        # Si contiene *, permitir como patrón regex
+        if "*" in origin:
+            # Convertir wildcard a patrón que CORSMiddleware entienda
+            # FastAPI permite regex patterns
+            pattern = origin.replace(".", r"\.").replace("*", ".*")
+            origins_list.append(pattern)
+        else:
+            origins_list.append(origin)
+    return origins_list
+
+cors_origins = process_cors_origins(settings.allowed_origins)
 
 # ─── Middlewares ──────────────────────────────────────────────────────────────
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost.*" if "*" in settings.allowed_origins else None,
+    allow_origins=[o for o in cors_origins if "*" not in o] if "*" in settings.allowed_origins else cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
