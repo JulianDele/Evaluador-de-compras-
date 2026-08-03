@@ -2,7 +2,7 @@
 import { useState, useRef, DragEvent } from 'react'
 import toast from 'react-hot-toast'
 import Modal from './Modal'
-import api from '../api'
+import api, { API_BASE_URL } from '../api'
 import type { ImportResponse } from '../types'
 
 const REQUIRED_FIELDS = ['nombre', 'producto', 'cantidad', 'fecha', 'precio'] as const
@@ -261,7 +261,7 @@ export default function ImportWizard({ onClose }: Props) {
           </p>
           {importData.validation.error_rows > 0 && (
             <a
-              href={`${import.meta.env.VITE_API_URL}/imports/${importData.import_id}/errors.csv`}
+              href={`${API_BASE_URL}/imports/${importData.import_id}/errors.csv`}
               className="btn btn-ghost mt-4"
               style={{ marginTop: '1rem', display: 'inline-flex' }}
               download
