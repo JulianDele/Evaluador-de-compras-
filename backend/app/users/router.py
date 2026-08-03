@@ -1,7 +1,7 @@
 """
 Router de usuarios: CRUD y análisis de compras.
 """
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, desc
@@ -102,9 +102,228 @@ def create_user(
     )
 
 
-# ─── Obtener usuario ──────────────────────────────────────────────────────────
+# ─── Predicciones de compras futuras ──────────────────────────────────────────
 
-@router.get("/{user_id}", response_model=UserDetail, summary="Detalle de usuario")
+@router.get("/forecast-purchases", summary="Predecir compras futuras")  # Query param version
+def predict_future_purchases(
+    user_id: int = Query(..., description="ID del usuario"),
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Predice productos y cantidades que el usuario probablemente comprará en el futuro."""
+    
+    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    
+    # Obtener todas las compras del usuario (últimos 12 meses)
+    cutoff_date = date.today() - timedelta(days=365)
+    purchases = db.query(Purchase).filter(
+        Purchase.user_id == user_id,
+        Purchase.purchase_date >= cutoff_date,
+    ).all()
+    
+    if not purchases:
+        return {"predictions": []}
+    
+    # Agrupar por producto y calcular estadísticas
+    product_stats = {}
+    for purchase in purchases:
+        key = purchase.product.name
+        if key not in product_stats:
+            product_stats[key] = {
+                "product": key,
+                "dates": [],
+                "quantities": [],
+                "prices": [],
+                "total_spent": 0,
+            }
+        
+        product_stats[key]["dates"].append(purchase.purchase_date)
+        product_stats[key]["quantities"].append(purchase.quantity)
+        product_stats[key]["prices"].append(float(purchase.price))
+        product_stats[key]["total_spent"] += float(purchase.quantity * purchase.price)
+    
+    predictions = []
+    today = date.today()
+    
+    for product_name, stats in product_stats.items():
+        if len(stats["dates"]) < 2:
+            continue
+        
+        # Calcular días entre compras (frecuencia)
+        sorted_dates = sorted(stats["dates"])
+        intervals = []
+        for i in range(1, len(sorted_dates)):
+            delta = (sorted_dates[i] - sorted_dates[i-1]).days
+            if delta > 0:
+                intervals.append(delta)
+        
+        if not intervals:
+            continue
+        
+        # Promedios
+        avg_days = sum(intervals) / len(intervals)
+        avg_quantity = max(1, sum(stats["quantities"]) / len(stats["quantities"]))
+        avg_price = sum(stats["prices"]) / len(stats["prices"])
+        
+        # Predecir fecha de próxima compra
+        last_date = sorted_dates[-1]
+        predicted_date = last_date + timedelta(days=avg_days)
+        
+        days_until_prediction = (predicted_date - today).days
+        if days_until_prediction >= 0:
+            predictions.append({
+                "product": product_name,
+                "predicted_quantity": round(avg_quantity),
+                "predicted_price": round(avg_price, 2),
+                "predicted_total": round(avg_quantity * avg_price, 2),
+                "predicted_date": predicted_date.isoformat(),
+                "frequency_days": round(avg_days),
+                "confidence": min(100, int((len(stats["dates"]) / 12) * 100)),
+                "purchase_count": len(stats["dates"]),
+                "total_spent": round(stats["total_spent"], 2),
+            })
+    
+    # Ordenar por probabilidad (confianza) de mayor a menor
+    predictions.sort(key=lambda x: x["confidence"], reverse=True)
+    
+    return {"predictions": predictions[:10]}  # Top 10 predicciones
+
+
+# ─── Resumen analítico ────────────────────────────────────────────────────────
+
+@router.get("/{user_id}/summary", response_model=AnalysisSummary, summary="Resumen analítico de compras del usuario")
+def get_user_summary(
+    user_id: int,
+    from_date: Optional[date] = Query(None, alias="from"),
+    to_date:   Optional[date] = Query(None, alias="to"),
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+
+    q = db.query(Purchase).filter(Purchase.user_id == user_id)
+    if from_date:
+        q = q.filter(Purchase.purchase_date >= from_date)
+    if to_date:
+        q = q.filter(Purchase.purchase_date <= to_date)
+
+    purchases = q.all()
+    totals = [(p.quantity * p.price) for p in purchases]
+    total_spent = sum(totals)
+    avg = total_spent / len(totals) if totals else 0
+
+    # Top productos
+    from collections import Counter
+    product_counts: dict = {}
+    product_spent:  dict = {}
+    payment_counts: Counter = Counter()
+
+    for p in purchases:
+        pname = p.product.name
+        product_counts[pname] = product_counts.get(pname, 0) + 1
+        product_spent[pname]  = product_spent.get(pname, 0) + float(p.quantity * p.price)
+        payment_counts[p.payment_method] += 1
+
+    top_products = [
+        {"product": name, "count": cnt, "total_spent": round(product_spent[name], 2)}
+        for name, cnt in sorted(product_counts.items(), key=lambda x: -x[1])[:5]
+    ]
+
+    fav = max(product_counts, key=product_counts.get) if product_counts else None
+    fav_pay = payment_counts.most_common(1)[0][0] if payment_counts else None
+
+    response = {
+        "user_id": user_id,
+        "user_name": user.name,
+        "period": {"from": str(from_date or ""), "to": str(to_date or "")},
+        "summary": {
+            "total_purchases": len(purchases),
+            "total_spent": round(float(total_spent), 2),
+            "average_per_purchase": round(float(avg), 2),
+            "favorite_product": fav,
+            "most_used_payment_method": fav_pay,
+        },
+        "top_products": top_products,
+        "payment_methods": dict(payment_counts),
+    }
+    
+    # Agregar predicciones (SIEMPRE)
+    cutoff_date_pred = date.today() - timedelta(days=365)
+    all_purchases = db.query(Purchase).filter(
+        Purchase.user_id == user_id,
+        Purchase.purchase_date >= cutoff_date_pred,
+    ).all()
+    
+    if all_purchases:
+        product_stats = {}
+        for purchase in all_purchases:
+            key = purchase.product.name
+            if key not in product_stats:
+                product_stats[key] = {
+                    "product": key,
+                    "dates": [],
+                    "quantities": [],
+                    "prices": [],
+                    "total_spent": 0,
+                }
+            
+            product_stats[key]["dates"].append(purchase.purchase_date)
+            product_stats[key]["quantities"].append(purchase.quantity)
+            product_stats[key]["prices"].append(float(purchase.price))
+            product_stats[key]["total_spent"] += float(purchase.quantity * purchase.price)
+        
+        predictions = []
+        today = date.today()
+        
+        for product_name, stats in product_stats.items():
+            if len(stats["dates"]) < 2:
+                continue
+            
+            sorted_dates = sorted(stats["dates"])
+            intervals = []
+            for i in range(1, len(sorted_dates)):
+                delta = (sorted_dates[i] - sorted_dates[i-1]).days
+                if delta > 0:
+                    intervals.append(delta)
+            
+            if not intervals:
+                continue
+            
+            avg_days = sum(intervals) / len(intervals)
+            avg_quantity = sum(stats["quantities"]) / len(stats["quantities"])
+            avg_price = sum(stats["prices"]) / len(stats["prices"])
+            
+            last_date = sorted_dates[-1]
+            predicted_date = last_date + timedelta(days=avg_days)
+            
+            days_until_prediction = (predicted_date - today).days
+            if days_until_prediction >= 0:
+                predictions.append({
+                    "product": product_name,
+                    "predicted_quantity": max(1, round(avg_quantity)),
+                    "predicted_price": round(avg_price, 2),
+                    "predicted_total": round(avg_quantity * avg_price, 2),
+                    "predicted_date": predicted_date.isoformat(),
+                    "frequency_days": round(avg_days),
+                    "confidence": min(100, int((len(stats["dates"]) / 12) * 100)),
+                    "purchase_count": len(stats["dates"]),
+                    "total_spent": round(stats["total_spent"], 2),
+                })
+        
+        predictions.sort(key=lambda x: x["confidence"], reverse=True)
+        response["predictions"] = predictions[:10]
+    else:
+        response["predictions"] = []
+    
+    return response
+
+
+
+@router.get("/details/{user_id}", response_model=UserDetail, summary="Detalle de usuario")
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
@@ -154,71 +373,19 @@ def get_user(
     )
 
 
-# ─── Resumen analítico ────────────────────────────────────────────────────────
-
-@router.get("/{user_id}/summary", response_model=AnalysisSummary,
-            summary="Resumen analítico de compras del usuario")
-def get_user_summary(
+@router.get("/{user_id}", response_model=UserDetail, summary="Detalle de usuario (ruta corta)")
+def get_user_short(
     user_id: int,
-    from_date: Optional[date] = Query(None, alias="from"),
-    to_date:   Optional[date] = Query(None, alias="to"),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(404, "Usuario no encontrado")
-
-    q = db.query(Purchase).filter(Purchase.user_id == user_id)
-    if from_date:
-        q = q.filter(Purchase.purchase_date >= from_date)
-    if to_date:
-        q = q.filter(Purchase.purchase_date <= to_date)
-
-    purchases = q.all()
-    totals = [(p.quantity * p.price) for p in purchases]
-    total_spent = sum(totals)
-    avg = total_spent / len(totals) if totals else 0
-
-    # Top productos
-    from collections import Counter
-    product_counts: dict = {}
-    product_spent:  dict = {}
-    payment_counts: Counter = Counter()
-
-    for p in purchases:
-        pname = p.product.name
-        product_counts[pname] = product_counts.get(pname, 0) + 1
-        product_spent[pname]  = product_spent.get(pname, 0) + float(p.quantity * p.price)
-        payment_counts[p.payment_method] += 1
-
-    top_products = [
-        {"product": name, "count": cnt, "total_spent": round(product_spent[name], 2)}
-        for name, cnt in sorted(product_counts.items(), key=lambda x: -x[1])[:5]
-    ]
-
-    fav = max(product_counts, key=product_counts.get) if product_counts else None
-    fav_pay = payment_counts.most_common(1)[0][0] if payment_counts else None
-
-    return AnalysisSummary(
-        user_id=user_id,
-        user_name=user.name,
-        period={"from": str(from_date or ""), "to": str(to_date or "")},
-        summary={
-            "total_purchases": len(purchases),
-            "total_spent": round(float(total_spent), 2),
-            "average_per_purchase": round(float(avg), 2),
-            "favorite_product": fav,
-            "most_used_payment_method": fav_pay,
-        },
-        top_products=top_products,
-        payment_methods=dict(payment_counts),
-    )
+    """Ruta corta para compatibilidad con el frontend que solicita /users/{id}."""
+    return get_user(user_id=user_id, db=db, _=_)
 
 
 # ─── Eliminar usuario ─────────────────────────────────────────────────────────
 
-@router.delete("/{user_id}", summary="Eliminar usuario")
+@router.delete("/details/{user_id}", summary="Eliminar usuario")
 def delete_user(
     user_id: int,
     request: Request,

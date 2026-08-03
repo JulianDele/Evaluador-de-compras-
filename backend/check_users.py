@@ -3,7 +3,7 @@
 
 from sqlalchemy import create_engine, text
 
-DATABASE_URL = "postgresql://evaluadorcomprasdb_1moi_user:H3kIijyzTYAHFmHBk3rDaj5kEiBOVKbE@dpg-d8sg8t7avr4c73fomscg-a.oregon-postgres.render.com/consumo_estrategico"
+DATABASE_URL = "postgresql://ce_user:JQQujV40beK2iN6njtNajPijvFPHIbJo@dpg-d9m2jtu7bikc739vbjlg-a.oregon-postgres.render.com/consumo_estrategico_fark"
 engine = create_engine(DATABASE_URL)
 
 with engine.connect() as conn:

@@ -4,7 +4,7 @@
 from sqlalchemy import create_engine, text
 
 # Use direct database URL from Render
-DATABASE_URL = "postgresql://evaluadorcomprasdb_1moi_user:H3kIijyzTYAHFmHBk3rDaj5kEiBOVKbE@dpg-d8sg8t7avr4c73fomscg-a.oregon-postgres.render.com/consumo_estrategico"
+DATABASE_URL = "postgresql://ce_user:JQQujV40beK2iN6njtNajPijvFPHIbJo@dpg-d9m2jtu7bikc739vbjlg-a.oregon-postgres.render.com/consumo_estrategico_fark"
 CORRECT_HASH = "$2b$12$RU26e7r.aHCNs/spPjS9lu9vDs.MQxpNhHFDEnlyIz0fH4scMQtjy"
 
 # Connect to database

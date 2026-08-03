@@ -26,7 +26,7 @@ class ImportStatusEnum(str, Enum):
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
-    email:    EmailStr
+    email:    str
     password: str = Field(min_length=8)
 
 
@@ -86,6 +86,18 @@ class UserDetail(UserSummary):
     last_purchase_date:    Optional[date]
 
 
+class Prediction(BaseModel):
+    product:           str
+    predicted_quantity: int
+    predicted_price:    Decimal
+    predicted_total:    Decimal
+    predicted_date:     str
+    frequency_days:     int
+    confidence:         int
+    purchase_count:     int
+    total_spent:        Decimal
+
+
 class AnalysisSummary(BaseModel):
     user_id:   int
     user_name: str
@@ -93,6 +105,7 @@ class AnalysisSummary(BaseModel):
     summary:   dict
     top_products:     List[dict]
     payment_methods:  dict
+    predictions:      List[Prediction]
 
 
 # ─── Purchases ───────────────────────────────────────────────────────────────

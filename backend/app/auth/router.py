@@ -2,6 +2,7 @@
 Router de autenticación: login y registro de usuarios.
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from starlette.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db

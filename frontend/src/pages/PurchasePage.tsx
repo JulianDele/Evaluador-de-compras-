@@ -9,6 +9,7 @@ import api from '../api'
 import type { UserDetail, Purchase, PurchaseCreate } from '../types'
 import Modal from '../components/Modal'
 import AnalysisDashboard from '../components/AnalysisDashboard'
+import PredictedPurchases from '../components/PredictedPurchases'
 
 const schema = z.object({
   product:        z.string().min(1, 'Campo requerido'),
@@ -308,7 +309,10 @@ export default function PurchasePage() {
 
         {/* ── Pestaña: Análisis de Compras ── */}
         {activeTab === 'analysis' && userId && user && (
-          <AnalysisDashboard userId={Number(userId)} userName={user.name} />
+          <>
+            <AnalysisDashboard userId={Number(userId)} userName={user.name} />
+            <PredictedPurchases userId={Number(userId)} />
+          </>
         )}
       </div>
 

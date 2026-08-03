@@ -5,7 +5,7 @@ Los hashes bcrypt ya están pre-generados
 from sqlalchemy import create_engine, text
 
 # URL de Render
-DATABASE_URL = "postgresql://evaluadorcomprasdb_1moi_user:H3kIijyzTYAHFmHBk3rDaj5kEiBOVKbE@dpg-d8sg8t7avr4c73fomscg-a.oregon-postgres.render.com/consumo_estrategico"
+DATABASE_URL = "postgresql://ce_user:JQQujV40beK2iN6njtNajPijvFPHIbJo@dpg-d9m2jtu7bikc739vbjlg-a.oregon-postgres.render.com/consumo_estrategico_fark"
 
 # Hash bcrypt de "Consumo2024!" generado con bcrypt
 # Para verificar: bcrypt.checkpw(b"Consumo2024!", b"$2b$12$...")

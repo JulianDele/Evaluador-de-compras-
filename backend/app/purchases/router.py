@@ -3,7 +3,8 @@ Router de compras: registro, listado y exportación.
 """
 import csv
 import io
-from datetime import date
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
@@ -16,6 +17,18 @@ from app.schemas import PurchaseCreate, PurchaseResponse, PurchaseList
 from app.auth.security import get_current_user
 
 router = APIRouter(prefix="/purchases", tags=["Compras"])
+
+
+# ─── Ruta de prueba ───────────────────────────────────────────────────────────
+
+@router.get("/test/{purchase_id}", summary="Ruta de prueba")
+def test_purchase_route(
+    purchase_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Ruta simple de prueba en el router de purchases"""
+    return {"status": "ok", "purchase_id": purchase_id}
 
 
 def _get_or_create_product(db: Session, name: str) -> Product:

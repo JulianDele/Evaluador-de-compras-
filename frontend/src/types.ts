@@ -73,6 +73,30 @@ export interface TopProduct {
   total_spent: number
 }
 
+export interface PredictedPurchase {
+  product: string
+  predicted_quantity: number
+  predicted_price: number
+  predicted_total: number
+  predicted_date: string
+  frequency_days: number
+  confidence: number
+  purchase_count: number
+  total_spent: number
+}
+
+export interface RawPredictedPurchase {
+  product: string
+  predicted_quantity: number | string
+  predicted_price: number | string
+  predicted_total: number | string
+  predicted_date: string
+  frequency_days: number | string
+  confidence: number | string
+  purchase_count: number | string
+  total_spent: number | string
+}
+
 export interface AnalysisSummary {
   user_id: number
   user_name: string
@@ -89,4 +113,5 @@ export interface AnalysisSummary {
   }
   top_products: TopProduct[]
   payment_methods: Record<string, number>
+  predictions: PredictedPurchase[]
 }
